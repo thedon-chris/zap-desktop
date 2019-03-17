@@ -14,6 +14,9 @@ import {
   Panel,
   Text,
   TransactionFeeInput,
+  Toggle,
+  DataRow,
+  Label,
 } from 'components/UI'
 import { CurrencyFieldGroup, CryptoValue } from 'containers/UI'
 import PaySummaryLightning from 'containers/Pay/PaySummaryLightning'
@@ -84,31 +87,33 @@ class Pay extends React.Component {
     /** Boolean indicating wether the form is being processed. If true, form buttons are disabled. */
     intl: intlShape.isRequired,
     /** Current fee information as provided by bitcoinfees.earn.com */
+    isCoinSweep: PropTypes.bool,
     isProcessing: PropTypes.bool,
-    isQueryingFees: PropTypes.bool,
     /** Payment request to load into the form. */
-    network: PropTypes.string.isRequired,
+    isQueryingFees: PropTypes.bool,
     /** Routing information */
+    network: PropTypes.string.isRequired,
+    /** Current wallet balance (in satoshis). */
     onchainFees: PropTypes.shape({
       fastestFee: PropTypes.number,
       halfHourFee: PropTypes.number,
       hourFee: PropTypes.number,
     }),
-    /** Current wallet balance (in satoshis). */
-    payInvoice: PropTypes.func.isRequired,
 
     /** Payment request to load into the form. */
-    payReq: PropTypes.object,
+    payInvoice: PropTypes.func.isRequired,
     /** Method to close the current modal */
+    payReq: PropTypes.object,
     queryFees: PropTypes.func.isRequired,
-    queryRoutes: PropTypes.func.isRequired,
     /** Method to process offChain invoice payments. Called when the form is submitted. */
-    routes: PropTypes.array,
+    queryRoutes: PropTypes.func.isRequired,
     /** Set the current payment request. */
-    sendCoins: PropTypes.func.isRequired,
+    routes: PropTypes.array,
     /** Method to process onChain transactions. Called when the form is submitted. */
-    setPayReq: PropTypes.func.isRequired,
+    sendCoins: PropTypes.func.isRequired,
     /** Method to collect route information for lightning invoices. */
+    setPayReq: PropTypes.func.isRequired,
+    /** If true, lnd will attempt to send all coins available to selected address  */
     walletBalance: PropTypes.number.isRequired,
   }
 
@@ -231,6 +236,16 @@ class Pay extends React.Component {
     }
   }
 
+  sweepCoins = value => {
+    const { walletBalance } = this.props
+    if (value) {
+      let onChainBalance = convert('sats', 'btc', walletBalance)
+      this.formApi.setValue('amountCrypto', onChainBalance)
+    } else {
+      this.formApi.setValue('amountCrypto', 0)
+    }
+  }
+
   amountInSats = () => {
     const { isLn, isOnchain, invoice } = this.state
     const { cryptoCurrency } = this.props
@@ -254,7 +269,15 @@ class Pay extends React.Component {
    */
   onSubmit = values => {
     const { currentStep, isOnchain } = this.state
-    const { cryptoCurrency, payInvoice, routes, sendCoins, changeFilter, closeModal } = this.props
+    const {
+      cryptoCurrency,
+      payInvoice,
+      routes,
+      sendCoins,
+      changeFilter,
+      closeModal,
+      isCoinSweep,
+    } = this.props
     if (currentStep === 'summary') {
       if (isOnchain) {
         // Determine the fee rate to use.
@@ -266,6 +289,7 @@ class Pay extends React.Component {
           value: values.amountCrypto,
           currency: cryptoCurrency,
           satPerByte: satPerByte,
+          isCoinSweep: isCoinSweep,
         })
         // Close the form modal once the transaction has been sent
         changeFilter('ALL_ACTIVITY')
@@ -468,7 +492,7 @@ class Pay extends React.Component {
 
   renderAmountFields = () => {
     const { currentStep } = this.state
-    const { intl, initialAmountCrypto, initialAmountFiat, isQueryingFees } = this.props
+    const { intl, initialAmountCrypto, initialAmountFiat, isQueryingFees, isCoinSweep } = this.props
     const fee = this.getFee()
 
     return (
@@ -485,7 +509,7 @@ class Pay extends React.Component {
               forwardedRef={this.amountInput}
               initialAmountCrypto={initialAmountCrypto}
               initialAmountFiat={initialAmountFiat}
-              isDisabled={currentStep !== 'amount'}
+              isDisabled={currentStep !== 'amount' || isCoinSweep !== false}
               isRequired
             />
 
@@ -498,6 +522,20 @@ class Pay extends React.Component {
               label={intl.formatMessage({ ...messages.fee })}
               required
             />
+            <DataRow
+              left={
+                <Label htmlFor="isCoinSweep">
+                  <FormattedMessage {...messages.sweep_funds} />
+                </Label>
+              }
+              mt={4}
+              py={2}
+              right={
+                <Toggle field="isCoinSweep" id="isCoinSweep" onValueChange={this.sweepCoins} />
+              }
+            />
+
+            <Bar mb={4} mt={2} />
           </Box>
         )}
       </ShowHideAmount>

@@ -24,6 +24,7 @@ export default defineMessages({
   amount: 'Amount',
   total: 'Total',
   memo: 'Memo',
+  sweep_funds: 'Send all of your funds',
   description:
     'You can send {chain} ({ticker}) through the Lightning Network or make a On-Chain Transaction. Just paste your Lightning Payment Request or the {chain} Address in the field below. Zap will guide you to the process.',
 })

@@ -43,10 +43,17 @@ export function getTransactions(lnd) {
  * @param  {[type]} lnd    [description]
  * @param  {[type]} addr   [description]
  * @param  {[type]} amount [description]
+ * @param  {[type]} isCoinSweeep [description]
  * @return {[type]}        [description]
  */
-export function sendCoins(lnd, { addr, amount, target_conf, sat_per_byte }) {
-  return promisifiedCall(lnd, lnd.sendCoins, { addr, amount, target_conf, sat_per_byte })
+export function sendCoins(lnd, { addr, amount, target_conf, sat_per_byte, isCoinSweep }) {
+  return promisifiedCall(lnd, lnd.sendCoins, {
+    addr,
+    amount,
+    target_conf,
+    sat_per_byte,
+    isCoinSweep,
+  })
 }
 
 /**
